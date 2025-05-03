@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Sierpinski Circlet Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8f8f8;
+            --text-color: #333;
+            --panel-bg: rgba(255, 255, 255, 0.9);
+            --panel-border: #ddd;
+            --btn-bg: #f5f5f5;
+            --btn-color: #333;
+            --btn-border: #ccc;
+            --btn-hover: #e5e5e5;
+            --btn-active: #4caf50;
+            --btn-active-color: #fff;
+            --accent-color: #2a6cbb;
+            --accent-hover: #1a5cab;
+            --circle-color: #00ccff;
+            --triangle-color: #ccff00;
+            --overlay-color: #00ff66;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --panel-bg: rgba(30, 30, 30, 0.9);
+            --panel-border: #444;
+            --btn-bg: #333;
+            --btn-color: #e0e0e0;
+            --btn-border: #555;
+            --btn-hover: #444;
+            --btn-active: #4caf50;
+            --btn-active-color: #fff;
+            --accent-color: #4c8ddb;
+            --accent-hover: #5c9deb;
+            --circle-color: #00ccff;
+            --triangle-color: #ccff00;
+            --overlay-color: #00ff66;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            transition: background-color 0.3s ease;
+        }
+
+        canvas {
+            display: block;
+            background-color: var(--bg-color);
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--panel-bg);
+            color: var(--text-color);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            border: 1px solid var(--panel-border);
+            width: 260px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button {
+            background: var(--btn-bg);
+            color: var(--btn-color);
+            border: 1px solid var(--btn-border);
+            padding: 8px 14px;
+            margin: 3px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+        }
+
+        button.active {
+            background: var(--btn-active);
+            color: var(--btn-active-color);
+            border-color: var(--btn-active);
+        }
+
+        .slider-container {
+            margin: 12px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .slider-value {
+            display: inline-block;
+            width: 30px;
+            text-align: right;
+            font-family: monospace;
+            padding: 2px 6px;
+            background: var(--btn-bg);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--btn-border);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .slider::-moz-range-thumb:hover {
+            background: var(--accent-hover);
+            transform: scale(1.2);
+        }
+
+        #exportControls {
+            margin-top: 15px;
+        }
+
+        .full-width-btn {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        #exportBtn {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        #exportBtn:hover {
+            background: var(--accent-hover);
+        }
+
+        .nav-btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 8px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            background: var(--panel-bg);
+            border-radius: 30px;
+            padding: 5px 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--panel-border);
+        }
+
+        .theme-icon {
+            font-size: 18px;
+            margin-right: 8px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--btn-bg);
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid var(--btn-border);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--accent-color);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(25px);
+            background-color: #f8bb00;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                width: 220px;
+                font-size: 14px;
+            }
+            
+            button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
+
+        .export-options {
+            margin-bottom: 10px;
+        }
+
+        #exportGifBtn {
+            background: var(--accent-color);
+            margin-top: 8px;
+        }
+
+        #exportVideoBtn {
+            background: var(--accent-color);
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--btn-border);
+            border-radius: 2px;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--accent-color);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-color);
+        }
+
+        #hideUIButton {
+            position: absolute;
+            top: 10px;
+            right: 280px;
+            background: var(--panel-bg);
+            color: var(--text-color);
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--panel-border);
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        #hideUIButton.controls-hidden {
+            right: 10px;
+        }
+
+        #controls {
+            transition: transform 0.3s ease;
+        }
+
+        #controls.hidden {
+            transform: translateX(300px);
+        }
+        
+        /* Add styles for desktop app context */
+        @media screen and (display-mode: window) {
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                background-color: var(--bg-color);
+            }
+            
+            #controls {
+                max-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <button id="hideUIButton">Hide UI</button>
+    
+    <div class="theme-toggle">
+        <span class="theme-icon">☀️</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="themeToggle">
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="theme-icon">🌙</span>
+    </div>
+    
+    <div id="controls">
+        <div class="control-group">
+            <span class="control-label">Visualization Mode</span>
+            <div class="btn-group">
+                <button id="mode2D" class="active tooltip">2D
+                    <span class="tooltiptext">2D Canvas Rendering</span>
+                </button>
+                <button id="mode3D" class="tooltip">3D
+                    <span class="tooltiptext">3D WebGL Rendering</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="control-group" id="mode2DOptions">
+            <span class="control-label">2D Pattern</span>
+            <div class="btn-group">
+                <button id="singleCirclet" class="active tooltip">Single
+                    <span class="tooltiptext">Single Sierpinski Circlet</span>
+                </button>
+                <button id="doubleCirclet" class="tooltip">Double
+                    <span class="tooltiptext">Overlapping Circlets</span>
+                </button>
+                <button id="flowerOfLife" class="tooltip">Flower
+                    <span class="tooltiptext">Flower of Life Pattern</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="control-group" id="mode3DOptions" style="display: none;">
+            <span class="control-label">3D Pattern</span>
+            <div class="btn-group">
+                <button id="simple3D" class="active tooltip">3D Circlet
+                    <span class="tooltiptext">3D Sierpinski Circlet</span>
+                </button>
+                <button id="flowerOfLife3D" class="tooltip">3D Flower
+                    <span class="tooltiptext">3D Flower of Life</span>
+                </button>
+                <button id="skybox3D" class="tooltip">Skybox
+                    <span class="tooltiptext">Immersive Dome Visualization</span>
+                </button>
+            </div>
+
+            <div id="skyboxOptions" style="display: none; margin-top: 10px;">
+                <span class="control-label">Deltahedron Faces</span>
+                <div class="btn-group">
+                    <button id="tetra" class="tooltip">4 Faces
+                        <span class="tooltiptext">Tetrahedral (4 triangular faces)</span>
+                    </button>
+                    <button id="octa" class="tooltip">8 Faces
+                        <span class="tooltiptext">Octahedral (8 triangular faces)</span>
+                    </button>
+                    <button id="icosa" class="active tooltip">20 Faces
+                        <span class="tooltiptext">Icosahedral (20 triangular faces)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Symmetry Points:</span>
+                    <span id="symmetryValue" class="slider-value">3</span>
+                </div>
+                <input type="range" min="3" max="9" value="3" class="slider" id="symmetrySlider">
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Iterations:</span>
+                    <span id="iterationValue" class="slider-value">5</span>
+                </div>
+                <input type="range" min="1" max="7" value="5" class="slider" id="iterationSlider">
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Line Width:</span>
+                    <span id="lineWidthValue" class="slider-value">1.0</span>
+                </div>
+                <input type="range" min="0.5" max="3.0" value="1.0" step="0.1" class="slider" id="lineWidthSlider">
+            </div>
+        </div>
+        
+        <div class="control-group" id="rotationControls">
+            <span class="control-label">3D Rotation Controls</span>
+            <div class="btn-group">
+                <button id="rotateX" class="tooltip" data-axis="x">X-Axis
+                    <span class="tooltiptext">Toggle X-Axis Rotation</span>
+                </button>
+                <button id="rotateY" class="active tooltip" data-axis="y">Y-Axis
+                    <span class="tooltiptext">Toggle Y-Axis Rotation</span>
+                </button>
+                <button id="rotateZ" class="tooltip" data-axis="z">Z-Axis
+                    <span class="tooltiptext">Toggle Z-Axis Rotation</span>
+                </button>
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Rotation Speed:</span>
+                    <span id="rotationValue" class="slider-value">1.0</span>
+                </div>
+                <input type="range" min="0" max="5" value="1" step="0.1" class="slider" id="rotationSlider">
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <span class="control-label">Colors</span>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Circles: <span class="color-preview" id="circleColorPreview"></span></span>
+                    <input type="color" id="circleColorPicker" value="#00ccff">
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Triangles: <span class="color-preview" id="triangleColorPreview"></span></span>
+                    <input type="color" id="triangleColorPicker" value="#ccff00">
+                </div>
+            </div>
+            
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Overlay: <span class="color-preview" id="overlayColorPreview"></span></span>
+                    <input type="color" id="overlayColorPicker" value="#00ff66">
+                </div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <span class="control-label">Navigation</span>
+            <div class="btn-group">
+                <button id="zoomInBtn" class="tooltip">
+                    Zoom +
+                    <span class="tooltiptext">Zoom In</span>
+                </button>
+                <button id="zoomOutBtn" class="tooltip">
+                    Zoom -
+                    <span class="tooltiptext">Zoom Out</span>
+                </button>
+            </div>
+            
+            <div class="nav-btn-group">
+                <button id="resetViewBtn" class="full-width-btn tooltip">
+                    Reset View
+                    <span class="tooltiptext">Reset Zoom, Pan & Rotation</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="control-group" id="exportControls">
+            <div class="export-options">
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Duration (seconds):</span>
+                        <span id="durationValue" class="slider-value">3.0</span>
+                    </div>
+                    <input type="range" min="1" max="10" value="3" step="0.5" class="slider" id="durationSlider">
+                </div>
+                <button id="exportBtn" class="full-width-btn tooltip">
+                    Export PNG Image
+                    <span class="tooltiptext">Save Current View as PNG</span>
+                </button>
+                <button id="exportGifBtn" class="full-width-btn tooltip">
+                    Export GIF
+                    <span class="tooltiptext">Save Animation as GIF</span>
+                </button>
+                <button id="exportVideoBtn" class="full-width-btn tooltip">
+                    Export MP4
+                    <span class="tooltiptext">Save Animation as MP4</span>
+                </button>
+            </div>
+            <div id="exportProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">Recording: <span id="progressText">0%</span></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Visibility Options</span>
+            <div class="btn-group">
+                <button id="toggleTriangles" class="active tooltip">Triangles
+                    <span class="tooltiptext">Toggle Triangle Visibility</span>
+                </button>
+                <button id="toggleGrid" class="active tooltip">Grid
+                    <span class="tooltiptext">Toggle Grid Visibility (3D Skybox)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <span class="control-label">Pattern Visibility</span>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Triangle Opacity:</span>
+                    <span id="triangleOpacityValue" class="slider-value">0.4</span>
+                </div>
+                <input type="range" min="0" max="1" value="0.4" step="0.1" class="slider" id="triangleOpacitySlider">
+            </div>
+            <div class="btn-group">
+                <button id="toggleTriangles" class="active tooltip">Triangle Pattern
+                    <span class="tooltiptext">Toggle Sierpinski Triangle Pattern</span>
+                </button>
+                <button id="toggleGrid" class="active tooltip">Background Grid
+                    <span class="tooltiptext">Toggle Background Grid (3D Skybox)</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/CCapture.js/1.1.0/CCapture.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/download.js/1.4.7/download.min.js"></script>
+
+    <script>
+        // Canvas and context setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Configuration
+        const config = {
+            iterations: 5,
+            symmetry: 3, // Default to Sierpinski (3-fold)
+            lineWidth: 1.0,
+            mode: '2D',
+            submode: 'singleCirclet',
+            scale: 1, // Zoom level
+            offsetX: 0, // Pan offset X
+            offsetY: 0, // Pan offset Y
+            rotation: 0, // Rotation in radians
+            rotationSpeed: 1.0,
+            isDragging: false,
+            lastX: 0,
+            lastY: 0,
+            startScale: 1,
+            colors: {
+                circle: '#00ccff',     // Sky blue for circles
+                triangle: '#ccff00',   // Yellow-green for triangles
+                overlay: '#00ff66',    // Green for overlay
+                background: '#f8f8f8', // Light background for light mode
+                darkBackground: '#121212', // Dark background for dark mode
+            },
+            isDarkMode: false,
+            rotationX: false,
+            rotationY: true,  // Default Y rotation enabled
+            rotationZ: false,
+        };
+        
+        // Three.js components
+        let scene, camera, renderer;
+        let circletObject, flowerObject, skyboxObject;
+        let animationFrameId;
+        
+        // Draw a polygon with vertices on the circle
+        function drawPolygon(x, y, radius, numVertices) {
+            const showTriangles = document.getElementById('toggleTriangles').classList.contains('active');
+            if (!showTriangles) return [];
+            
+            const opacity = parseFloat(document.getElementById('triangleOpacitySlider').value);
+            const vertices = [];
+            
+            // Calculate vertices evenly spaced around the circle
+            const startAngle = -Math.PI/2;
+            
+            ctx.beginPath();
+            for (let i = 0; i < numVertices; i++) {
+                const angle = startAngle + i * (2 * Math.PI / numVertices);
+                const vertexX = x + radius * Math.cos(angle);
+                const vertexY = y + radius * Math.sin(angle);
+                
+                if (i === 0) ctx.moveTo(vertexX, vertexY);
+                else ctx.lineTo(vertexX, vertexY);
+                
+                vertices.push({x: vertexX, y: vertexY});
+            }
+            ctx.closePath();
+            
+            // Fill with user-controlled opacity
+            ctx.fillStyle = hexToRgba(config.colors.triangle, opacity);
+            ctx.fill();
+            
+            return vertices;
+        }
+
+        // Convert hex color to rgba
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        // Draw a circle
+        function drawCircle(x, y, radius) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+            ctx.strokeStyle = config.colors.circle;
+            ctx.lineWidth = config.lineWidth;
+            ctx.stroke();
+        }
+        
+        // Updated drawCirclet function to fix triangle phase and visibility
+        function drawCirclet(centerX, centerY, radius, iterations, symmetry, rotation = 0, circleColor = null) {
+            const showTriangles = document.getElementById('toggleTriangles').classList.contains('active');
+            const opacity = parseFloat(document.getElementById('triangleOpacitySlider').value);
+            
+            // Save context if we have rotation
+            if (rotation !== 0) {
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(rotation);
+                ctx.translate(-centerX, -centerY);
+            }
+            
+            // Draw triangles first (if visible and if we're not in the base iteration)
+            if (showTriangles && iterations > 0) {
+                drawPolygon(centerX, centerY, radius, symmetry);
+            }
+            
+            // Draw circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, false);
+            ctx.strokeStyle = circleColor || config.colors.circle;
+            ctx.lineWidth = config.lineWidth * 1.5;
+            ctx.stroke();
+            
+            // Draw recursive patterns after the current level's circle
+            if (iterations > 1) {
+                const newRadius = radius / 2;
+                for (let i = 0; i < symmetry; i++) {
+                    const angle = -Math.PI/2 + i * (2*Math.PI/symmetry);
+                    const inwardX = centerX + (radius/2) * Math.cos(angle);
+                    const inwardY = centerY + (radius/2) * Math.sin(angle);
+                    drawCircletRecursive(inwardX, inwardY, newRadius, iterations - 1, symmetry);
+                }
+            }
+            
+            if (rotation !== 0) {
+                ctx.restore();
+            }
+        }
+        
+        // Recursive helper for drawing circlets
+        function drawCircletRecursive(x, y, radius, iterations, symmetry) {
+            if (iterations <= 1) return;
+            
+            // Draw the polygon that fits this circle
+            const vertices = drawPolygon(x, y, radius, symmetry);
+            
+            // For each vertex, create a new smaller circlet
+            const newRadius = radius / 2;
+            
+            for (let i = 0; i < symmetry; i++) {
+                // Calculate the center of the new circle
+                const vertexAngle = -Math.PI/2 + i * (2*Math.PI/symmetry);
+                const inwardX = x + (radius/2) * Math.cos(vertexAngle);
+                const inwardY = y + (radius/2) * Math.sin(vertexAngle);
+                
+                // Draw the circle at the new position
+                drawCircle(inwardX, inwardY, newRadius);
+                
+                // Recursively draw the next iteration
+                if (iterations > 2) {
+                    drawCircletRecursive(inwardX, inwardY, newRadius, iterations - 1, symmetry);
+                }
+            }
+        }
+        
+        // Draw a Flower of Life pattern using exactly 7 circlets
+        function drawFlowerOfLife(centerX, centerY, radius) {
+            // Perfect hexagonal lattice with Sierpinski circlets
+            const positions = [];
+            // Center circlet
+            positions.push([centerX, centerY]);
+            
+            // Calculate exact distance for perfect overlap at 1/6th circumference
+            const hexRadius = radius * Math.sqrt(3); // Distance to outer circlets
+            
+            // Add 6 outer circlets in perfect hexagonal arrangement
+            for (let i = 0; i < 6; i++) {
+                const angle = i * Math.PI / 3; // 60° increments
+                const x = centerX + hexRadius * Math.cos(angle);
+                const y = centerY + hexRadius * Math.sin(angle);
+                positions.push([x, y]);
+            }
+            
+            // Draw the 7 Sierpinski circlets
+            positions.forEach(([x, y]) => {
+                drawCirclet(x, y, radius, config.iterations, config.symmetry);
+            });
+        }
+
+        // Main 2D rendering function
+        function render2D() {
+            // Clear canvas with current background color
+            ctx.fillStyle = config.colors.background;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Apply transformations (pan, zoom)
+            ctx.save();
+            
+            // Apply pan
+            ctx.translate(config.offsetX, config.offsetY);
+            
+            // Apply zoom centered on canvas
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Move to center, scale, then move back
+            ctx.translate(centerX, centerY);
+            ctx.scale(config.scale, config.scale);
+            ctx.translate(-centerX, -centerY);
+            
+            // Set line width with scale compensation
+            ctx.lineWidth = config.lineWidth / config.scale;
+            
+            // Draw based on current submode
+            const size = Math.min(canvas.width, canvas.height) * 0.35;
+            
+            switch (config.submode) {
+                case 'singleCirclet':
+                    drawCirclet(centerX, centerY, size, config.iterations, config.symmetry);
+                    break;
+                    
+                case 'doubleCirclet':
+                    // Draw base circlet
+                    drawCirclet(centerX, centerY, size, config.iterations, config.symmetry);
+                    // Draw overlay with exact 180-degree rotation
+                    drawCirclet(centerX, centerY, size, config.iterations, config.symmetry, Math.PI, config.colors.overlay);
+                    break;
+                    
+                case 'flowerOfLife':
+                    drawFlowerOfLife(centerX, centerY, size / 2.5);
+                    break;
+            }
+            
+            // Restore context
+            ctx.restore();
+        }
+        
+        // Convert hex color to THREE.js color
+        function convertHexToThreeColor(hexColor) {
+            return parseInt(hexColor.replace('#', '0x'), 16);
+        }
+        
+        // Create a 3D polygon with vertices on the circle
+        function createPolygon3D(radius, numVertices, color) {
+            const vertices = [];
+            const startAngle = -Math.PI/2;
+            
+            for (let i = 0; i < numVertices; i++) {
+                const angle = startAngle + i * (2 * Math.PI / numVertices);
+                vertices.push(new THREE.Vector3(
+                    radius * Math.cos(angle),
+                    radius * Math.sin(angle),
+                    0
+                ));
+            }
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setFromPoints(vertices);
+            
+            // Create polygon outline
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: 1.0
+            });
+            const outline = new THREE.LineLoop(geometry, lineMaterial);
+            
+            // Create polygon fill with user-controlled opacity (single material)
+            const opacity = parseFloat(document.getElementById('triangleOpacitySlider').value);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: color, 
+                transparent: true, 
+                opacity: opacity,
+                side: THREE.DoubleSide,
+                depthWrite: false  // Ensure proper transparency
+            });
+            
+            // Create single mesh for the polygon
+            const mesh = new THREE.Mesh(geometry, material);
+            return mesh;
+        }
+        
+        // Create a 3D circle
+        function createCircle3D(radius, color, segments = 64) {
+            const geometry = new THREE.TorusGeometry(radius, radius * 0.02, 16, segments);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            return new THREE.Mesh(geometry, material);
+        }
+        
+        // Create a 3D circlet with specified symmetry
+        function createCirclet3D() {
+            if (circletObject) scene.remove(circletObject);
+            
+            circletObject = new THREE.Object3D();
+            const radius = 1;
+            
+            // Create base pattern
+            const pattern = createSierpinskiCirclet3DComplete(radius, config.iterations);
+            circletObject.add(pattern);
+            
+            scene.add(circletObject);
+            circletObject.visible = config.mode === '3D' && config.submode === 'simple3D';
+        }
+
+        // Recursive helper for creating 3D circlets
+        function createCirclet3DRecursive(parent, radius, iterations) {
+            if (iterations <= 0) return;
+            
+            const newRadius = radius / 2;
+            const symmetry = config.symmetry;
+            
+            // For each vertex of the polygon
+            for (let i = 0; i < symmetry; i++) {
+                const angle = -Math.PI/2 + i * (2*Math.PI/symmetry);
+                
+                // Calculate the center of the new circle (inward from the vertex)
+                const inwardX = (radius/2) * Math.cos(angle);
+                const inwardY = (radius/2) * Math.sin(angle);
+                
+                // Create a group for this subcirclet
+                const subcirclet = new THREE.Group();
+                subcirclet.position.set(inwardX, inwardY, 0);
+                
+                // Add the circle
+                const circle = createCircle3D(newRadius, convertHexToThreeColor(config.colors.circle));
+                subcirclet.add(circle);
+                
+                // Add the polygon
+                const polygon = createPolygon3D(newRadius, symmetry, convertHexToThreeColor(config.colors.triangle));
+                subcirclet.add(polygon);
+                
+                // Recursively add smaller circlets
+                if (iterations > 1) {
+                    createCirclet3DRecursive(subcirclet, newRadius, iterations - 1);
+                }
+                
+                parent.add(subcirclet);
+            }
+        }
+        
+        // Helper function to create a complete 3D circlet
+        function createSierpinskiCirclet3DComplete(radius, iterations) {
+            const pattern = new THREE.Group();
+            
+            // Create main outline circle
+            const mainCircle = createCircle3D(radius, convertHexToThreeColor(config.colors.circle));
+            pattern.add(mainCircle);
+            
+            // Add triangular elements if enabled
+            const showTriangles = document.getElementById('toggleTriangles').classList.contains('active');
+            if (showTriangles && iterations > 0) {
+                const triangle = createPolygon3D(radius, config.symmetry, convertHexToThreeColor(config.colors.triangle));
+                pattern.add(triangle);
+                
+                // Add recursive patterns
+                if (iterations > 1) {
+                    const childRadius = radius / 2;
+                    for (let i = 0; i < config.symmetry; i++) {
+                        const angle = -Math.PI/2 + i * (2*Math.PI/config.symmetry);
+                        const x = (radius/2) * Math.cos(angle);
+                        const y = (radius/2) * Math.sin(angle);
+                        
+                        const child = createSierpinskiCirclet3DComplete(childRadius, iterations - 1);
+                        child.position.set(x, y, 0);
+                        pattern.add(child);
+                    }
+                }
+            }
+            
+            return pattern;
+        }
+        
+        // Create a 3D Flower of Life with exactly 7 circlets
+        function createFlowerOfLife3D() {
+            if (flowerObject) scene.remove(flowerObject);
+            flowerObject = new THREE.Object3D();
+            
+            const radius = 0.6;
+            const hexRadius = radius * Math.sqrt(3);
+            const positions = [[0, 0, 0]]; // Center
+            
+            // Create hexagonal arrangement
+            for (let i = 0; i < 6; i++) {
+                const angle = i * Math.PI / 3;
+                positions.push([
+                    hexRadius * Math.cos(angle),
+                    hexRadius * Math.sin(angle),
+                    0
+                ]);
+            }
+            
+            // Create and position circlets
+            positions.forEach(([x, y, z]) => {
+                const circlet = createSierpinskiCirclet3DComplete(radius, config.iterations);
+                circlet.position.set(x, y, z);
+                circlet.userData.originalPosition = new THREE.Vector3(x, y, z);
+                flowerObject.add(circlet);
+            });
+            
+            scene.add(flowerObject);
+            flowerObject.visible = config.mode === '3D' && config.submode === 'flowerOfLife3D';
+        }
+
+        function createSkybox3D() {
+            if (skyboxObject) scene.remove(skyboxObject);
+            skyboxObject = new THREE.Object3D();
+            
+            // Create icosahedron with reasonable size
+            const radius = 100;
+            // Create the geometry WITHOUT subdivisions to keep exactly 20 faces
+            const geometry = new THREE.IcosahedronGeometry(radius, 0);
+            
+            // Add wireframe reference
+            const wireframe = new THREE.LineSegments(
+            new THREE.WireframeGeometry(geometry),
+            new THREE.LineBasicMaterial({
+                color: convertHexToThreeColor(config.colors.circle),
+                transparent: true,
+                opacity: 0.2
+            })
+            );
+            skyboxObject.add(wireframe);
+            
+            // Get positions from the geometry
+            const posArray = geometry.attributes.position.array;
+            
+            // Process each face (set of 3 vertices)
+            for (let i = 0; i < posArray.length; i += 9) {
+            // Get vertices of this face
+            const v1 = new THREE.Vector3(posArray[i], posArray[i+1], posArray[i+2]);
+            const v2 = new THREE.Vector3(posArray[i+3], posArray[i+4], posArray[i+5]);
+            const v3 = new THREE.Vector3(posArray[i+6], posArray[i+7], posArray[i+8]);
+            
+            // Calculate face center and normal
+            const center = new THREE.Vector3().add(v1).add(v2).add(v3).divideScalar(3);
+            const normal = new THREE.Vector3()
+                .crossVectors(
+                new THREE.Vector3().subVectors(v2, v1),
+                new THREE.Vector3().subVectors(v3, v1)
+                )
+                .normalize();
+            
+            // Calculate face basis vectors
+            const edgeVector = new THREE.Vector3().subVectors(v2, v1).normalize();
+            const sideVector = new THREE.Vector3().crossVectors(normal, edgeVector);
+            
+            // Create transformation matrix to align pattern with face
+            const alignMatrix = new THREE.Matrix4();
+            alignMatrix.makeBasis(edgeVector, sideVector, normal);
+            
+            // Calculate pattern size based on face
+            const edgeLength = v1.distanceTo(v2);
+            const patternRadius = edgeLength / Math.sqrt(3); // Match equilateral triangle inscribed circle radius
+            
+            // Create pattern with fixed triangle base but variable symmetry
+            const pattern = createSierpinskiCirclet3DComplete(patternRadius, config.iterations, [v1, v2, v3]);
+            pattern.position.copy(center);
+            pattern.setRotationFromMatrix(alignMatrix);
+            pattern.rotateX(Math.PI); // Rotate 180 degrees to align with face direction
+            pattern.scale.set(1, 1, 1); // Ensure proper scaling for alignment
+            
+            skyboxObject.add(pattern);
+            }
+            
+            scene.add(skyboxObject);
+            skyboxObject.visible = config.mode === '3D' && config.submode === 'skybox3D';
+            
+            // Force a render to update
+            render3D();
+        }
+        
+        function createSierpinskiCirclet3DComplete(radius, iterations) {
+            const pattern = new THREE.Group();
+            
+            // Create main circle
+            const mainCircle = createCircle3D(radius, convertHexToThreeColor(config.colors.circle));
+            pattern.add(mainCircle);
+        
+            const showTriangles = document.getElementById('toggleTriangles').classList.contains('active');
+            if (showTriangles && iterations > 0) {
+            // Create single triangle with proper opacity
+            const triangle = createPolygon3D(radius, config.symmetry, convertHexToThreeColor(config.colors.triangle));
+            pattern.add(triangle);
+        
+            if (iterations > 1) {
+                const childRadius = radius / 2;
+                for (let i = 0; i < config.symmetry; i++) {
+                const angle = -Math.PI/2 + i * (2*Math.PI/config.symmetry);
+                const x = (radius/2) * Math.cos(angle);
+                const y = (radius/2) * Math.sin(angle);
+                
+                const child = createSierpinskiCirclet3DComplete(childRadius, iterations - 1);
+                child.position.set(x, y, 0);
+                pattern.add(child);
+                }
+            }
+            }
+            
+            return pattern;
+        }
+
+        // Fix 3D zoom controls
+        function setupOrbitControls() {
+            let isDragging3D = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            let currentObject = null;
+            
+            // Handle rotation/dragging with shift key distinction
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging3D = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                
+                // Select current object based on mode
+                if (!e.shiftKey) { // Normal drag rotates object
+                    if (config.submode === 'simple3D') currentObject = circletObject;
+                    else if (config.submode === 'flowerOfLife3D') currentObject = flowerObject;
+                    else if (config.submode === 'skybox3D') currentObject = skyboxObject;
+                }
+            });
+        
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!isDragging3D) return;
+                
+                const deltaMove = {
+                    x: e.clientX - previousMousePosition.x,
+                    y: e.clientY - previousMousePosition.y
+                };
+        
+                if (e.shiftKey) {
+                    // Camera rotation (hold shift)
+                    camera.rotation.y -= deltaMove.x * 0.005;
+                    camera.rotation.x -= deltaMove.y * 0.005;
+                } else if (currentObject) {
+                    // Object rotation
+                    currentObject.rotation.y += deltaMove.x * 0.005;
+                    currentObject.rotation.x += deltaMove.y * 0.005;
+                }
+        
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                render3D();
+            });
+        
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging3D = false;
+                currentObject = null;
+            });
+        
+            renderer.domElement.addEventListener('mouseleave', () => {
+                isDragging3D = false;
+                currentObject = null;
+            });
+        }
+        
+        // Render the 3D scene
+        function render3D() {
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+        
+        // Enhanced 3D rotation controls
+        function update3DRotation() {
+            const xSpeed = parseFloat(document.getElementById('rotationXSlider').value);
+            const ySpeed = parseFloat(document.getElementById('rotationYSlider').value);
+            const zSpeed = parseFloat(document.getElementById('rotationZSlider').value);
+            
+            const rotateObject = (object, speedX, speedY, speedZ) => {
+                if (!object) return;
+                // Convert speeds from degrees to radians and apply precise rotation
+                object.rotation.x += (Math.PI / 180) * speedX * 0.5;
+                object.rotation.y += (Math.PI / 180) * speedY * 0.5;
+                object.rotation.z += (Math.PI / 180) * speedZ * 0.5;
+            };
+            
+            if (config.mode === '3D') {
+                if (config.submode === 'simple3D' && circletObject) {
+                    rotateObject(circletObject, xSpeed, ySpeed, zSpeed);
+                } else if (config.submode === 'flowerOfLife3D' && flowerObject) {
+                    rotateObject(flowerObject, xSpeed, ySpeed, zSpeed);
+                } else if (config.submode === 'skybox3D' && skyboxObject) {
+                    rotateObject(skyboxObject, xSpeed, ySpeed, zSpeed);
+                }
+                render3D();
+            }
+        }
+        
+        // Main rendering function
+        function render() {
+            if (config.mode === '2D') {
+                render2D();
+            } else {
+                // Recreate 3D objects with new parameters
+                createCirclet3D();
+                createFlowerOfLife3D();
+                createSkybox3D();
+                render3D();
+            }
+        }
+        
+        // Resize canvas to window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            if (config.mode === '2D') {
+                render2D();
+            } else if (renderer) {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                render3D();
+            }
+        }
+        
+        // Set up Three.js for 3D rendering
+        function setupThreeJS() {
+            if (renderer) return;
+            
+            scene = new THREE.Scene();
+            
+            // Create camera with mode-appropriate settings
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 10000);
+            camera.position.set(0, 0, 5);
+            
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true,
+                preserveDrawingBuffer: true 
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(config.colors.background);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            document.body.appendChild(renderer.domElement);
+            
+            // Create 3D objects
+            createCirclet3D();
+            createFlowerOfLife3D();
+            createSkybox3D();
+            
+            // Handle zoom with smooth transitions and mode-specific ranges
+            let zoomTarget = camera.position.z;
+            let isZooming = false;
+            
+            const handleZoom = (e) => {
+                if (config.mode === '3D') {
+                    e.preventDefault();
+                    // Much finer zoom speed control
+                    const baseSpeed = config.submode === 'skybox3D' ? 0.05 : 0.01;
+                    // Add non-linear scaling based on current zoom level for smoother transitions
+                    const zoomSpeed = baseSpeed * (Math.abs(camera.position.z) < 1 ? 0.5 : 1);
+                    const zoomAmount = e.deltaY * zoomSpeed;
+                    const newZ = zoomTarget + zoomAmount;
+        
+                    // Different zoom ranges for each mode
+                    if (config.submode === 'skybox3D') {
+                        if (newZ < 0) {
+                            // Inside skybox view (negative z)
+                            zoomTarget = Math.max(-50, Math.min(0, newZ));
+                            camera.lookAt(0, 0, 1); // Look outward when inside
+                        } else {
+                            // Outside skybox view
+                            zoomTarget = Math.max(0, Math.min(1000, newZ));
+                            camera.lookAt(0, 0, 0); // Look at center when outside
+                        }
+                    } else {
+                        // Regular objects (circlet and flower) have a smaller range
+                        zoomTarget = Math.max(2, Math.min(20, newZ));
+                        camera.lookAt(0, 0, 0);
+                    }
+        
+                    if (!isZooming) {
+                        isZooming = true;
+                        smoothZoom();
+                    }
+                }
+            };
+        
+            // Smooth zoom animation with improved interpolation
+            const smoothZoom = () => {
+                const currentZ = camera.position.z;
+                const diff = zoomTarget - currentZ;
+                // Slower interpolation speed for smoother transitions
+                const speed = config.submode === 'skybox3D' ? 0.15 : 0.08;
+                
+                if (Math.abs(diff) > 0.001) {
+                    camera.position.z += diff * speed;
+                    render3D();
+                    requestAnimationFrame(smoothZoom);
+                } else {
+                    camera.position.z = zoomTarget;
+                    isZooming = false;
+                    render3D();
+                }
+            };
+        
+            // Add single wheel listener with passive: false
+            window.addEventListener('wheel', handleZoom, { passive: false });
+            
+            // Setup 3D controls
+            setupOrbitControls();
+            
+            animate();
+        }
+        
+        function setup3DControls() {
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            let currentObject = null;
+            // Only handle object manipulation here, no zoom
+        }
+        
+        // Update color preview elements
+        function updateColorPreviews() {
+            document.getElementById('circleColorPreview').style.backgroundColor = config.colors.circle;
+            document.getElementById('triangleColorPreview').style.backgroundColor = config.colors.triangle;
+            document.getElementById('overlayColorPreview').style.backgroundColor = config.colors.overlay;
+            
+            // Update the color pickers to match current colors
+            document.getElementById('circleColorPicker').value = config.colors.circle;
+            document.getElementById('triangleColorPicker').value = config.colors.triangle;
+            document.getElementById('overlayColorPicker').value = config.colors.overlay;
+        }
+        
+        // Toggle between light and dark themes
+        function toggleTheme() {
+            config.isDarkMode = document.getElementById('themeToggle').checked;
+            
+            if (config.isDarkMode) {
+                document.body.setAttribute('data-theme', 'dark');
+                config.colors.background = config.colors.darkBackground;
+            } else {
+                document.body.removeAttribute('data-theme');
+                config.colors.background = '#f8f8f8';
+            }
+            
+            if (config.mode === '3D' && renderer) {
+                renderer.setClearColor(config.colors.background);
+            }
+            
+            render();
+        }
+        
+        // Reset view to default
+        function resetView() {
+            config.scale = 1;
+            config.offsetX = 0;
+            config.offsetY = 0;
+            config.rotation = 0;
+            
+            if (config.mode === '3D' && camera) {
+                camera.position.set(0, 0, -0.1); // Reset to inside view
+                camera.lookAt(0, 0, 1); // Look outward
+            }
+            
+            // Reset all rotation axes
+            ['X', 'Y', 'Z'].forEach(axis => {
+                const btn = document.getElementById(`rotate${axis}`);
+                const isActive = axis === 'Y';  // Only Y-axis active by default
+                btn.classList.toggle('active', isActive);
+                config[`rotation${axis}`] = isActive;
+            });
+        
+            if (circletObject) circletObject.rotation.set(0, 0, 0);
+            if (flowerObject) flowerObject.rotation.set(0, 0, 0);
+            if (skyboxObject) skyboxObject.rotation.set(0, 0, 0);
+        
+            render();
+        }
+        
+        // Export image as PNG
+        function exportImage() {
+            // Create a temporary canvas with background
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Set dimensions
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            
+            // Draw background
+            tempCtx.fillStyle = config.colors.background;
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            
+            if (config.mode === '2D') {
+                // Draw current canvas content
+                tempCtx.drawImage(canvas, 0, 0);
+            } else if (renderer) {
+                // For 3D mode, take a screenshot of the renderer
+                renderer.render(scene, camera);
+                tempCtx.drawImage(renderer.domElement, 0, 0);
+            }
+            
+            // Create a download link
+            const link = document.createElement('a');
+            link.download = 'sierpinski-circlet.png';
+            link.href = tempCanvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Set visualization mode (2D or 3D)
+        function setMode(mode) {
+            config.mode = mode;
+            
+            // Clear all 3D objects first
+            if (circletObject) scene.remove(circletObject);
+            if (flowerObject) scene.remove(flowerObject);
+            if (skyboxObject) scene.remove(skyboxObject);
+        
+            // Update UI
+            document.getElementById('mode2D').classList.toggle('active', mode === '2D');
+            document.getElementById('mode3D').classList.toggle('active', mode === '3D');
+            document.getElementById('mode2DOptions').style.display = mode === '2D' ? 'block' : 'none';
+            document.getElementById('mode3DOptions').style.display = mode === '3D' ? 'block' : 'none';
+            document.getElementById('rotationControls').style.display = mode === '3D' ? 'block' : 'none';
+            
+            if (mode === '2D') {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                if (renderer && renderer.domElement.parentNode) {
+                    renderer.domElement.parentNode.removeChild(renderer.domElement);
+                }
+                canvas.style.display = 'block';
+                setSubmode('singleCirclet');
+            } else {
+                canvas.style.display = 'none';
+                if (!renderer) setupThreeJS();
+                document.body.appendChild(renderer.domElement);
+                
+                // Create all 3D objects fresh
+                createCirclet3D();
+                createFlowerOfLife3D();
+                createSkybox3D();
+                
+                // Set initial visibility
+                if (circletObject) circletObject.visible = false;
+                if (flowerObject) flowerObject.visible = false;
+                if (skyboxObject) skyboxObject.visible = false;
+                
+                setSubmode('simple3D');
+                if (!animationFrameId) animate();
+            }
+        
+            if (mode === '3D') {
+                // Reset rotation states to match button states
+                ['X', 'Y', 'Z'].forEach(axis => {
+                    const btn = document.getElementById(`rotate${axis}`);
+                    config[`rotation${axis}`] = btn.classList.contains('active');
+                });
+            }
+        
+            render();
+        }
+        
+        // Fix double overlay implementation
+        function setSubmode(submode) {
+            config.submode = submode;
+            
+            const size = Math.min(canvas.width, canvas.height) * 0.35;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Update button states based on mode
+            if (config.mode === '2D') {
+                document.getElementById('singleCirclet').classList.toggle('active', submode === 'singleCirclet');
+                document.getElementById('doubleCirclet').classList.toggle('active', submode === 'doubleCirclet');
+                document.getElementById('flowerOfLife').classList.toggle('active', submode === 'flowerOfLife');
+                
+                if (submode === 'doubleCirclet') {
+                    // Clear and redraw with proper overlay
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = config.colors.background;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw base circlet
+                    drawCirclet(centerX, centerY, size, config.iterations, config.symmetry, 0, config.colors.circle);
+                    
+                    // Draw rotated overlay exactly 180 degrees
+                    drawCirclet(centerX, centerY, size, config.iterations, config.symmetry, Math.PI, config.colors.overlay);
+                }
+            } else {
+                document.getElementById('simple3D').classList.toggle('active', submode === 'simple3D');
+                document.getElementById('flowerOfLife3D').classList.toggle('active', submode === 'flowerOfLife3D');
+                document.getElementById('skybox3D').classList.toggle('active', submode === 'skybox3D');
+                
+                // Update 3D object visibility
+                if (circletObject) circletObject.visible = submode === 'simple3D';
+                if (flowerObject) flowerObject.visible = submode === 'flowerOfLife3D';
+                if (skyboxObject) skyboxObject.visible = submode === 'skybox3D';
+                
+            }
+            
+            // Update UI buttons
+            const buttons = config.mode === '2D' ? 
+                ['singleCirclet', 'doubleCirclet', 'flowerOfLife'] :
+                ['simple3D', 'flowerOfLife3D', 'skybox3D'];
+            
+            buttons.forEach(btn => {
+                document.getElementById(btn)?.classList.toggle('active', btn === submode);
+            });
+            
+            render();
+        }
+        
+        // Initialize
+        function init() {
+            resizeCanvas();
+            setupEventListeners();
+            updateColorPreviews();
+            setupThreeJS();
+            render();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Mode selection
+            document.getElementById('mode2D').addEventListener('click', () => setMode('2D'));
+            document.getElementById('mode3D').addEventListener('click', () => setMode('3D'));
+            
+            // 2D submodes
+            document.getElementById('singleCirclet').addEventListener('click', () => setSubmode('singleCirclet'));
+            document.getElementById('doubleCirclet').addEventListener('click', () => setSubmode('doubleCirclet'));
+            document.getElementById('flowerOfLife').addEventListener('click', () => setSubmode('flowerOfLife'));
+            
+            // 3D submodes
+            document.getElementById('simple3D').addEventListener('click', () => setSubmode('simple3D'));
+            document.getElementById('flowerOfLife3D').addEventListener('click', () => setSubmode('flowerOfLife3D'));
+            document.getElementById('skybox3D').addEventListener('click', () => setSubmode('skybox3D'));
+            
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('change', toggleTheme);
+            
+            // Symmetry slider
+            const symmetrySlider = document.getElementById('symmetrySlider');
+            symmetrySlider.addEventListener('input', () => {
+                config.symmetry = parseInt(symmetrySlider.value);
+                document.getElementById('symmetryValue').textContent = config.symmetry;
+                render();
+            });
+            
+            // Iteration slider
+            const iterationSlider = document.getElementById('iterationSlider');
+            iterationSlider.addEventListener('input', () => {
+                config.iterations = parseInt(iterationSlider.value);
+                document.getElementById('iterationValue').textContent = config.iterations;
+                render();
+            });
+            
+            // Line width slider
+            const lineWidthSlider = document.getElementById('lineWidthSlider');
+            lineWidthSlider.addEventListener('input', () => {
+                config.lineWidth = parseFloat(lineWidthSlider.value);
+                document.getElementById('lineWidthValue').textContent = config.lineWidth.toFixed(1);
+                render();
+            });
+            
+            // Rotation speed slider
+            const rotationSlider = document.getElementById('rotationSlider');
+            rotationSlider.addEventListener('input', () => {
+                config.rotationSpeed = parseFloat(rotationSlider.value);
+                document.getElementById('rotationValue').textContent = config.rotationSpeed.toFixed(1);
+            });
+            
+            // Color pickers
+            document.getElementById('circleColorPicker').addEventListener('input', (e) => {
+                config.colors.circle = e.target.value;
+                updateColorPreviews();
+                render();
+            });
+            
+            document.getElementById('triangleColorPicker').addEventListener('input', (e) => {
+                config.colors.triangle = e.target.value;
+                updateColorPreviews();
+                render();
+            });
+            
+            document.getElementById('overlayColorPicker').addEventListener('input', (e) => {
+                config.colors.overlay = e.target.value;
+                updateColorPreviews();
+                render();
+            });
+            
+            // Zoom buttons
+            document.getElementById('zoomInBtn').addEventListener('click', () => {
+                config.scale *= 1.2;
+                render();
+            });
+            
+            document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                config.scale /= 1.2;
+                render();
+            });
+            
+            // Mouse wheel for zooming
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomDirection = e.deltaY < 0 ? 1 : -1;
+                const zoomFactor = zoomDirection > 0 ? 1.1 : 0.9;
+                
+                // Get mouse position relative to canvas
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Calculate new scale
+                const oldScale = config.scale;
+                config.scale *= zoomFactor;
+                
+                // Adjust offsets to zoom toward mouse position
+                config.offsetX = mouseX - (mouseX - config.offsetX) * (config.scale / oldScale);
+                config.offsetY = mouseY - (mouseY - config.offsetY) * (config.scale / oldScale);
+                
+                render();
+            });
+            
+            // Mouse drag for panning
+            canvas.addEventListener('mousedown', (e) => {
+                config.isDragging = true;
+                config.lastX = e.clientX;
+                config.lastY = e.clientY;
+                canvas.style.cursor = 'grabbing';
+            });
+            
+            window.addEventListener('mouseup', () => {
+                config.isDragging = false;
+                canvas.style.cursor = 'default';
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (config.isDragging) {
+                    config.offsetX += e.clientX - config.lastX;
+                    config.offsetY += e.clientY - config.lastY;
+                    config.lastX = e.clientX;
+                    config.lastY = e.clientY;
+                    render();
+                }
+            });
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    // Single touch for panning
+                    config.isDragging = true;
+                    config.lastX = e.touches[0].clientX;
+                    config.lastY = e.touches[0].clientY;
+                } else if (e.touches.length === 2) {
+                    // Two touches for pinch zoom
+                    config.isDragging = false;
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    config.startScale = config.scale;
+                    config.pinchDistance = Math.sqrt(dx * dx + dy * dy);
+                }
+                e.preventDefault();
+            });
+            
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1 && config.isDragging) {
+                    // Pan with single touch
+                    config.offsetX += e.touches[0].clientX - config.lastX;
+                    config.offsetY += e.touches[0].clientY - config.lastY;
+                    config.lastX = e.touches[0].clientX;
+                    config.lastY = e.touches[0].clientY;
+                    render();
+                } else if (e.touches.length === 2) {
+                    // Pinch zoom with two touches
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Calculate center point between touches
+                    const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    
+                    // Calculate zoom
+                    const newScale = config.startScale * (distance / config.pinchDistance);
+                    const oldScale = config.scale;
+                    config.scale = newScale;
+                    
+                    // Adjust offsets to zoom toward center position
+                    config.offsetX = centerX - (centerX - config.offsetX) * (config.scale / oldScale);
+                    config.offsetY = centerY - (centerY - config.offsetY) * (config.scale / oldScale);
+                    
+                    render();
+                }
+                e.preventDefault();
+            });
+            
+            canvas.addEventListener('touchend', () => {
+                config.isDragging = false;
+            });
+            
+            // Reset view button
+            document.getElementById('resetViewBtn').addEventListener('click', resetView);
+            
+            // Export button
+            document.getElementById('exportBtn').addEventListener('click', exportImage);
+            
+            // Window resize
+            window.addEventListener('resize', resizeCanvas);
+        
+            // Add visibility toggle handlers
+            document.getElementById('toggleTriangles').addEventListener('click', (e) => {
+                const button = e.target;
+                button.classList.toggle('active');
+                const showTriangles = button.classList.contains('active');
+                
+                if (config.mode === '2D') {
+                    render2D(); // Will respect triangle visibility in next update
+                } else {
+                    // Update 3D objects visibility
+                    const updateMeshVisibility = (object) => {
+                        if (!object) return;
+                        object.traverse((child) => {
+                            if (child.isMesh && child.material.opacity < 1) {
+                                child.visible = showTriangles;
+                            }
+                        });
+                    };
+                    
+                    updateMeshVisibility(circletObject);
+                    updateMeshVisibility(flowerObject);
+                    updateMeshVisibility(skyboxObject);
+                    render3D();
+                }
+            });
+        
+            document.getElementById('toggleGrid').addEventListener('click', (e) => {
+                const button = e.target;
+                button.classList.toggle('active');
+                const showGrid = button.classList.contains('active');
+                
+                if (skyboxObject) {
+                    skyboxObject.children[0].visible = showGrid; // The first child is the grid dome
+                    render3D();
+                }
+            });
+        
+            // Triangle opacity slider
+            document.getElementById('triangleOpacitySlider').addEventListener('input', updateTriangleOpacity);
+        
+            // 3D rotation controls
+            ['X', 'Y', 'Z'].forEach(axis => {
+                const btn = document.getElementById(`rotate${axis}`);
+                btn.addEventListener('click', () => {
+                    // Clear other axis rotations when clicking a new one
+                    ['X', 'Y', 'Z'].forEach(a => {
+                        if (a !== axis) {
+                            document.getElementById(`rotate${a}`).classList.remove('active');
+                        }
+                    });
+                    btn.classList.toggle('active');
+                });
+            });
+            
+            // Single rotation speed slider
+            rotationSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('rotationValue').textContent = value.toFixed(1);
+                config.rotationSpeed = value;
+            });
+        
+            // Update the rotation button click handlers
+            ['X', 'Y', 'Z'].forEach(axis => {
+                const btn = document.getElementById(`rotate${axis}`);
+                const axisKey = `rotation${axis}`;
+                
+                btn.addEventListener('click', () => {
+                    config[axisKey] = !config[axisKey]; // Toggle the rotation state
+                    btn.classList.toggle('active', config[axisKey]); // Update button appearance
+                    
+                    if (!config[axisKey]) {
+                        // Reset rotation for this axis if disabled
+                        const object = config.submode === 'simple3D' ? circletObject :
+                                     config.submode === 'flowerOfLife3D' ? flowerObject :
+                                     config.submode === 'skybox3D' ? skyboxObject : null;
+                                     
+                        if (object) {
+                            object.rotation[axis.toLowerCase()] = 0;
+                            render3D();
+                        }
+                    }
+                });
+            });
+        
+            // Duration slider
+            const durationSlider = document.getElementById('durationSlider');
+            durationSlider.addEventListener('input', () => {
+                document.getElementById('durationValue').textContent = 
+                    parseFloat(durationSlider.value).toFixed(1);
+            });
+        
+            // Export buttons
+            document.getElementById('exportGifBtn').addEventListener('click', () => {
+                startRecording('gif');
+            });
+        
+            document.getElementById('exportVideoBtn').addEventListener('click', () => {
+                startRecording('webm');
+            });
+
+            // Add UI visibility toggle
+            const hideUIButton = document.getElementById('hideUIButton');
+            const controls = document.getElementById('controls');
+            
+            hideUIButton.addEventListener('click', () => {
+                controls.classList.toggle('hidden');
+                hideUIButton.classList.toggle('controls-hidden');
+                hideUIButton.textContent = controls.classList.contains('hidden') ? 'Show UI' : 'Hide UI';
+            });
+        }
+        
+        // Update triangle opacity handling
+        function updateTriangleOpacity() {
+            const opacity = parseFloat(document.getElementById('triangleOpacitySlider').value);
+            document.getElementById('triangleOpacityValue').textContent = opacity.toFixed(1);
+            
+            const updateObjectOpacity = (object) => {
+                if (!object) return;
+                object.traverse((child) => {
+                    if (child.isMesh && child.material.transparent) {
+                        child.material.opacity = opacity;
+                    }
+                });
+            };
+            
+            if (config.mode === '3D') {
+                updateObjectOpacity(circletObject);
+                updateObjectOpacity(flowerObject);
+                updateObjectOpacity(skyboxObject);
+                render3D();
+            } else {
+                render2D();
+            }
+        }
+        
+        // Enhanced rotation around center for Flower of Life
+        function rotateAroundCenter(object, angle) {
+            if (!object) return;
+            
+            // Store the original positions of all children
+            object.children.forEach(child => {
+                if (!child.userData.originalPosition) {
+                    child.userData.originalPosition = child.position.clone();
+                }
+                
+                // Apply rotation matrix to the original position
+                const rotationMatrix = new THREE.Matrix4();
+                rotationMatrix.makeRotationY(angle); // Or another axis like X or Z
+                
+                const rotatedPosition = child.userData.originalPosition.clone();
+                rotatedPosition.applyMatrix4(rotationMatrix);
+                
+                // Update position
+                child.position.copy(rotatedPosition);
+                
+                // Keep the circlet oriented properly
+                child.lookAt(0, 0, 0);
+                child.rotateZ(Math.PI/2); // Correct the orientation
+            });
+        }
+        
+        // Update animation loop to handle central rotation
+        function animate() {
+            animationFrameId = requestAnimationFrame(animate);
+            
+            if (config.mode === '3D') {
+                const object = config.submode === 'simple3D' ? circletObject :
+                             config.submode === 'flowerOfLife3D' ? flowerObject :
+                             config.submode === 'skybox3D' ? skyboxObject : null;
+        
+                if (object && config.rotationSpeed > 0) {
+                    const rotationDelta = 0.01 * config.rotationSpeed;
+                    
+                    if (config.rotationMode === 'center') {
+                        // Rotate around central axis
+                        rotateAroundCenter(object, rotationDelta);
+                    } else {
+                        // Standard local axis rotation
+                        object.rotation.y += rotationDelta;
+                    }
+                }
+                
+                render3D();
+            }
+        }
+        
+        // Update animation loop to properly handle axis rotation
+        function animate() {
+            animationFrameId = requestAnimationFrame(animate);
+            
+            if (config.mode === '3D') {
+                const object = config.submode === 'simple3D' ? circletObject :
+                             config.submode === 'flowerOfLife3D' ? flowerObject :
+                             config.submode === 'skybox3D' ? skyboxObject : null;
+        
+                if (object && config.rotationSpeed > 0) {
+                    const rotationDelta = (Math.PI / 180) * config.rotationSpeed;
+                    
+                    // Apply rotation for each active axis
+                    if (config.rotationX) object.rotation.x += rotationDelta;
+                    if (config.rotationY) object.rotation.y += rotationDelta;
+                    if (config.rotationZ) object.rotation.z += rotationDelta;
+                    
+                    render3D();
+                }
+            }
+        }
+        
+        // Start recording
+        let capturer = null;
+        let isRecording = false;
+        let recordingStartTime = 0;
+        
+        function startRecording(format) {
+            const duration = parseFloat(document.getElementById('durationSlider').value);
+            const fps = 60; // Increased for smoother animation
+            const totalFrames = duration * fps;
+            let frameCount = 0;
+        
+            // Show progress UI and reset it
+            document.getElementById('exportProgress').style.display = 'block';
+            document.querySelector('.progress-fill').style.width = '0%';
+            document.getElementById('progressText').textContent = '0%';
+        
+            // Initialize CCapture with selected format
+            const options = {
+                format: format,
+                workersPath: '/',
+                framerate: fps,
+                verbose: false,
+                quality: 100,
+                name: `sierpinski-${Date.now()}`,
+                extension: format === 'gif' ? '.gif' : '.mp4'
+            };
+            
+            capturer = new CCapture(options);
+            capturer.start();
+            isRecording = true;
+            recordingStartTime = performance.now();
+        
+            function recordFrame(timestamp) {
+                if (!isRecording) return;
+        
+                const elapsedTime = (timestamp - recordingStartTime) / 1000; // Convert to seconds
+                
+                if (elapsedTime <= duration) {
+                    // Update progress based on elapsed time
+                    const progress = (elapsedTime / duration) * 100;
+                    document.querySelector('.progress-fill').style.width = `${progress}%`;
+                    document.getElementById('progressText').textContent = `Recording: ${Math.round(progress)}%`;
+                    
+                    // Capture frame
+                    if (config.mode === '2D') {
+                        capturer.capture(canvas);
+                    } else {
+                        renderer.render(scene, camera);
+                        capturer.capture(renderer.domElement);
+                    }
+                    
+                    // Apply rotation for animation
+                    const object = config.submode === 'simple3D' ? circletObject :
+                                 config.submode === 'flowerOfLife3D' ? flowerObject :
+                                 config.submode === 'skybox3D' ? skyboxObject : null;
+                    
+                    if (object) {
+                        const rotationStep = (Math.PI * 2) / totalFrames;
+                        if (config.rotationX) object.rotation.x += rotationStep;
+                        if (config.rotationY) object.rotation.y += rotationStep;
+                        if (config.rotationZ) object.rotation.z += rotationStep;
+                    }
+                    
+                    frameCount++;
+                    requestAnimationFrame(recordFrame);
+                } else {
+                    // Show encoding progress
+                    document.getElementById('progressText').textContent = 'Encoding...';
+                    
+                    // Finish recording
+                    isRecording = false;
+                    try {
+                        capturer.stop();
+                        capturer.save((blob) => {
+                            // Create filename with timestamp
+                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                            const filename = `sierpinski-${config.mode}-${config.submode}-${timestamp}${format === 'gif' ? '.gif' : '.mp4'}`;
+                            
+                            // Create download link
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            
+                            // Reset the recording state
+                            capturer = null;
+                            recordingStartTime = 0;
+                            
+                            // Hide progress after short delay
+                            setTimeout(() => {
+                                document.getElementById('exportProgress').style.display = 'none';
+                            }, 1000);
+                        });
+                    } catch (error) {
+                        console.error('Error during recording:', error);
+                        document.getElementById('progressText').textContent = 'Error during recording';
+                        setTimeout(() => {
+                            document.getElementById('exportProgress').style.display = 'none';
+                        }, 2000);
+                    }
+                }
+            }
+        
+            requestAnimationFrame(recordFrame);
+        }
+        
+        // Add these handlers to your setupEventListeners function if not already present
+        document.getElementById('exportControls').innerHTML = `
+            <div class="export-options">
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Duration (seconds):</span>
+                        <span id="durationValue" class="slider-value">3.0</span>
+                    </div>
+                    <input type="range" min="1" max="10" value="3" step="0.5" class="slider" id="durationSlider">
+                </div>
+                <button id="exportBtn" class="full-width-btn tooltip">
+                    Export PNG Image
+                    <span class="tooltiptext">Save Current View as PNG</span>
+                </button>
+                <button id="exportGifBtn" class="full-width-btn tooltip">
+                    Export GIF
+                    <span class="tooltiptext">Save Animation as GIF</span>
+                </button>
+                <button id="exportVideoBtn" class="full-width-btn tooltip">
+                    Export MP4
+                    <span class="tooltiptext">Save Animation as MP4</span>
+                </button>
+            </div>
+            <div id="exportProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="progress-text">Recording: <span id="progressText">0%</span></div>
+            </div>
+        `;
+        
+        // Start the application
+        init();
+    </script>
+</body>
+</html>

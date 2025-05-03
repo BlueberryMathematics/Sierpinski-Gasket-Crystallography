@@ -1,0 +1,359 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage[margin=1in]{geometry}
+
+\title{Recursive Symmetric Patterns in Sierpinski Circlets: A Computational and Visual Framework}
+\author{Leo Borcherding}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper presents a novel interactive framework for visualizing and exploring recursive geometric structures based on the Sierpinski gasket principle applied to circular arrangements. We introduce the concept of a "Sierpinski circlet" - a recursive pattern that combines circular symmetry with fractal self-similarity. Our visualization system provides both 2D and 3D representations with adjustable parameters for symmetry count, iteration depth, and visual styling. We explore three primary pattern types: single circlets, overlapping dual circlets, and flower of life arrangements. The 3D extension maps these patterns onto polyhedra, creating immersive spherical visualizations. The mathematical foundations of these structures are analyzed, including their symmetry groups, recursive generation algorithms, and geometric properties.
+\end{abstract}
+
+\section{Introduction}
+Fractal geometric patterns appear throughout nature and have been extensively studied in mathematical literature. The Sierpinski triangle (or gasket) represents one of the most well-known fractal structures, characterized by its recursive self-similarity and triangular symmetry. In this work, we extend this concept by introducing circular symmetry to create what we term a "Sierpinski circlet."
+
+Our framework allows for dynamic exploration of these patterns with the following key features:
+\begin{itemize}
+    \item Variable n-fold symmetry (adjustable from 3 to 9 vertices)
+    \item Iterative recursive depth (1 to 7 levels)
+    \item Multiple visualization modes (2D canvas and 3D WebGL)
+    \item Pattern variations including single patterns, overlapping dual patterns, and flower of life arrangements
+    \item Real-time parameter adjustment and visual customization
+\end{itemize}
+
+This paper details both the mathematical foundations of these structures and the implementation of an interactive visualization tool for exploring their properties.
+
+\section{Mathematical Framework}
+
+\subsection{Basic Definitions}
+We define a Sierpinski circlet $\mathcal{C}_k(n)$ as a recursive geometric structure with $k$-fold symmetry and $n$ levels of recursion. The base structure ($n=0$) consists of a circle with radius $r_0$. For each subsequent iteration, we generate $k$ smaller circles positioned along the vertices of a regular $k$-gon inscribed within the previous circle.
+
+Formally, we can define the generation process as follows:
+
+\begin{definition}[Sierpinski Circlet]
+A Sierpinski circlet $\mathcal{C}_k(n)$ with $k$-fold symmetry and $n$ levels of recursion is defined recursively as:
+\begin{equation}
+\mathcal{C}_k(0) = \{(x,y) \in \mathbb{R}^2 : x^2 + y^2 = r_0^2\}
+\end{equation}
+
+\begin{equation}
+\mathcal{C}_k(n) = \mathcal{C}_k(n-1) \cup \bigcup_{i=0}^{k-1} \phi_i(\mathcal{C}_k(n-1))
+\end{equation}
+
+where $\phi_i$ is a transformation that scales by $\frac{1}{2}$ and translates to position $\mathbf{p}_i$.
+\end{definition}
+
+\subsection{Coordinate Transformations}
+For a circle of radius $r$ centered at origin $(0,0)$, the positions of the $k$ smaller circles at the next iteration are given by:
+
+\begin{equation}
+\mathbf{p}_i = \frac{r}{2} \begin{pmatrix} \cos(\theta_i) \\ \sin(\theta_i) \end{pmatrix}
+\end{equation}
+
+where $\theta_i = \frac{2\pi i}{k} - \frac{\pi}{2}$ for $i \in \{0, 1, ..., k-1\}$.
+
+The radius of each smaller circle is:
+\begin{equation}
+r_{n+1} = \frac{r_n}{2}
+\end{equation}
+
+This creates a recursive pattern where each new level contains $k$ times as many circles as the previous level, with radii decreasing by a factor of 2.
+
+\subsection{Triangular Elements}
+In addition to circles, our visualization incorporates triangular elements that follow the Sierpinski triangle pattern. At each level $n$, we create a regular $k$-gon inscribed in each circle. These polygons form the basis for the recursive pattern, with smaller instances placed at each vertex.
+
+The vertices of the $k$-gon inscribed in a circle of radius $r$ are given by:
+\begin{equation}
+\mathbf{v}_i = r \begin{pmatrix} \cos(\theta_i) \\ \sin(\theta_i) \end{pmatrix}
+\end{equation}
+
+where $\theta_i = \frac{2\pi i}{k} - \frac{\pi}{2}$ for $i \in \{0, 1, ..., k-1\}$.
+
+\subsection{Overlay Patterns}
+For the dual circlet visualization, we create two identical Sierpinski circlets with a phase shift between them. If $\mathcal{C}_k(n)$ represents the base circlet, then the overlaid circlet $\mathcal{C}'_k(n)$ is defined by applying a rotation of $\pi$ radians (180 degrees):
+
+\begin{equation}
+\mathcal{C}'_k(n) = \mathbf{R}_{\pi}(\mathcal{C}_k(n))
+\end{equation}
+
+where $\mathbf{R}_{\pi}$ is the rotation matrix:
+\begin{equation}
+\mathbf{R}_{\pi} = \begin{pmatrix} -1 & 0 \\ 0 & -1 \end{pmatrix}
+\end{equation}
+
+\subsection{Flower of Life Pattern}
+The Flower of Life pattern extends the single circlet by positioning identical circlets in a hexagonal arrangement. Given a base circlet $\mathcal{C}_k(n)$ with radius $r$, we position 7 instances (one central and six surrounding) at coordinates:
+
+\begin{equation}
+\mathbf{p}_0 = (0, 0) \quad \text{(central position)}
+\end{equation}
+
+\begin{equation}
+\mathbf{p}_i = r\sqrt{3} \begin{pmatrix} \cos(\frac{2\pi(i-1)}{6}) \\ \sin(\frac{2\pi(i-1)}{6}) \end{pmatrix} \quad \text{for } i \in \{1, 2, ..., 6\}
+\end{equation}
+
+The distance $r\sqrt{3}$ ensures proper overlap between adjacent circlets.
+
+\section{3D Extension}
+
+\subsection{Basic 3D Circlet}
+To extend the 2D circlet to 3D, we project the structure onto the $xy$-plane and render it using appropriate 3D primitives. Circles are represented as torus geometries with a small cross-sectional radius, and polygons are rendered as flat mesh objects.
+
+The generation process follows the same recursive logic as the 2D case, but with 3D coordinates:
+
+\begin{equation}
+\mathbf{p}_i = \frac{r}{2} \begin{pmatrix} \cos(\theta_i) \\ \sin(\theta_i) \\ 0 \end{pmatrix}
+\end{equation}
+
+\subsection{3D Flower of Life}
+The 3D Flower of Life extends the 2D arrangement into three dimensions, using the same hexagonal positioning but with 3D transformation matrices:
+
+\begin{equation}
+\mathbf{p}_i = r\sqrt{3} \begin{pmatrix} \cos(\frac{2\pi(i-1)}{6}) \\ \sin(\frac{2\pi(i-1)}{6}) \\ 0 \end{pmatrix} \quad \text{for } i \in \{1, 2, ..., 6\}
+\end{equation}
+
+\subsection{Skybox Mapping}
+The skybox implementation maps circlet patterns onto the faces of a regular deltahedron. Our implementation supports three polyhedra:
+
+\begin{enumerate}
+    \item Tetrahedron (4 triangular faces)
+    \item Octahedron (8 triangular faces)
+    \item Icosahedron (20 triangular faces)
+\end{enumerate}
+
+For each face, we position a circlet pattern centered on the face and oriented along the face normal vector. Given a face with vertices $\mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3$, we calculate:
+
+\begin{equation}
+\mathbf{c} = \frac{\mathbf{v}_1 + \mathbf{v}_2 + \mathbf{v}_3}{3} \quad \text{(face center)}
+\end{equation}
+
+\begin{equation}
+\mathbf{n} = \frac{(\mathbf{v}_2 - \mathbf{v}_1) \times (\mathbf{v}_3 - \mathbf{v}_1)}{|(\mathbf{v}_2 - \mathbf{v}_1) \times (\mathbf{v}_3 - \mathbf{v}_1)|} \quad \text{(face normal)}
+\end{equation}
+
+The pattern is then positioned at the face center and oriented to align with the face's coordinate system.
+
+\section{Visualization Implementation}
+
+\subsection{2D Canvas Rendering}
+For 2D visualizations, we use the HTML5 Canvas API with the following algorithm:
+
+\begin{algorithm}
+\caption{DrawSierpinskiCirclet($x$, $y$, $radius$, $iterations$, $symmetry$)}
+\begin{algorithmic}[1]
+\IF{$iterations \leq 0$}
+    \RETURN
+\ENDIF
+\STATE Draw circle at $(x, y)$ with radius $radius$
+\STATE Draw polygon with $symmetry$ sides
+\IF{$iterations > 1$}
+    \STATE $newRadius \gets radius / 2$
+    \FOR{$i \gets 0$ to $symmetry - 1$}
+        \STATE $angle \gets 2\pi i / symmetry - \pi/2$
+        \STATE $newX \gets x + (radius/2) \times \cos(angle)$
+        \STATE $newY \gets y + (radius/2) \times \sin(angle)$
+        \STATE DrawSierpinskiCirclet($newX$, $newY$, $newRadius$, $iterations - 1$, $symmetry$)
+    \ENDFOR
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{3D WebGL Rendering}
+For 3D visualizations, we utilize the Three.js library to create and manipulate 3D objects. The implementation follows the same recursive logic but constructs 3D geometries:
+
+\begin{algorithm}
+\caption{CreateSierpinskiCirclet3D($radius$, $iterations$, $symmetry$)}
+\begin{algorithmic}[1]
+\STATE Create empty 3D group object $pattern$
+\STATE Create torus geometry with radius $radius$
+\STATE Add torus to $pattern$
+\IF{$showTriangles$ AND $iterations > 0$}
+    \STATE Create polygon mesh with $symmetry$ sides
+    \STATE Add polygon to $pattern$
+    \IF{$iterations > 1$}
+        \STATE $childRadius \gets radius / 2$
+        \FOR{$i \gets 0$ to $symmetry - 1$}
+            \STATE $angle \gets 2\pi i / symmetry - \pi/2$
+            \STATE $x \gets (radius/2) \times \cos(angle)$
+            \STATE $y \gets (radius/2) \times \sin(angle)$
+            \STATE $child \gets$ CreateSierpinskiCirclet3D($childRadius$, $iterations - 1$, $symmetry$)
+            \STATE Position $child$ at $(x, y, 0)$
+            \STATE Add $child$ to $pattern$
+        \ENDFOR
+    \ENDIF
+\ENDIF
+\RETURN $pattern$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{User Interface and Interaction}
+The visualization system includes a comprehensive user interface allowing real-time adjustment of the following parameters:
+
+\begin{itemize}
+    \item Visualization mode (2D/3D)
+    \item Pattern type (single circlet, double circlet, flower of life)
+    \item Symmetry count (3-9)
+    \item Iteration depth (1-7)
+    \item Line width and opacity
+    \item Color selection for circles, triangles, and overlays
+    \item Rotation speed and axis selection (for 3D)
+    \item Zoom and pan functionality
+    \item Export options (PNG, GIF, MP4)
+\end{itemize}
+
+The interface provides instant visual feedback, allowing users to explore the parameter space and discover interesting pattern configurations.
+
+\section{Geometric Analysis}
+
+\subsection{Symmetry Properties}
+The Sierpinski circlet exhibits multiple levels of symmetry:
+
+\begin{itemize}
+    \item Rotational symmetry of order $k$ (where $k$ is the symmetry parameter)
+    \item Reflection symmetry across $k$ axes
+    \item Scale symmetry between recursive levels
+\end{itemize}
+
+The combined symmetry group for a circlet with $k$-fold symmetry is isomorphic to the dihedral group $D_k$.
+
+\subsection{Fractal Dimension}
+The Sierpinski circlet exhibits fractal properties similar to the Sierpinski triangle. The fractal dimension can be calculated using the box-counting method:
+
+\begin{equation}
+D = \frac{\log(k)}{\log(2)}
+\end{equation}
+
+where $k$ is the symmetry parameter. For the standard case where $k=3$, this gives $D = \frac{\log(3)}{\log(2)} \approx 1.585$, matching the Sierpinski triangle's dimension.
+
+\subsection{Pattern Interaction in Overlays}
+When two circlet patterns are overlaid with a phase difference, they create interference-like visual effects. These interactions follow from the superposition principle, where the visual impact of overlapping regions creates interesting moiré patterns.
+
+The combined opacity $\alpha$ in overlapping regions follows:
+\begin{equation}
+\alpha_{total} = 1 - (1-\alpha_1)(1-\alpha_2)
+\end{equation}
+
+where $\alpha_1$ and $\alpha_2$ are the individual opacity values.
+
+\section{Implementation Details}
+
+\subsection{Performance Considerations}
+The recursive nature of the Sierpinski circlet leads to exponential growth in the number of elements as iteration depth increases. For a circlet with $k$-fold symmetry and $n$ levels of recursion, the total number of circles rendered is:
+
+\begin{equation}
+N_{circles} = \sum_{i=0}^{n} k^i = \frac{k^{n+1} - 1}{k - 1}
+\end{equation}
+
+To maintain interactive performance, we implement several optimizations:
+
+\begin{itemize}
+    \item Limiting maximum iteration depth to 7
+    \item Using hardware-accelerated WebGL rendering for 3D modes
+    \item Implementing visibility culling for off-screen elements
+    \item Adjusting detail level based on zoom factor
+\end{itemize}
+
+\subsection{Color Management and Styling}
+The visualization supports custom color selection for different elements:
+
+\begin{itemize}
+    \item Circle color (primary outlines)
+    \item Triangle color (polygon fills)
+    \item Overlay color (for dual circlet mode)
+\end{itemize}
+
+Additionally, we implement both light and dark themes for the interface, with appropriate contrast adjustments for all elements.
+
+\subsection{Animation and Export}
+The system provides several options for animated visualizations:
+
+\begin{itemize}
+    \item Real-time rotation along selectable axes (X, Y, Z)
+    \item Adjustable rotation speed
+    \item Export functionality for static images (PNG)
+    \item Animation export as GIF or MP4 with customizable duration
+\end{itemize}
+
+The animation capture process uses the CCapture.js library for high-quality output at 60 frames per second.
+
+\section{Results and Discussion}
+
+\subsection{Visual Patterns and Emergent Properties}
+The Sierpinski circlet visualization reveals several interesting properties:
+
+\begin{itemize}
+    \item At higher iteration levels, the pattern approaches the classical Sierpinski gasket in the limit
+    \item Varying the symmetry parameter creates diverse visual structures
+    \item The overlay of two phase-shifted patterns generates complex interference patterns
+    \item The Flower of Life arrangement demonstrates how individual circlets can combine to form larger coherent structures
+\end{itemize}
+
+\subsection{3D Extensions}
+The 3D implementations provide additional perspectives on these structures:
+
+\begin{itemize}
+    \item The basic 3D circlet allows exploration of the structure from different viewing angles
+    \item The 3D Flower of Life reveals how multiple circlets interact in three-dimensional space
+    \item The skybox mapping onto polyhedra creates immersive environments where the patterns surround the viewer
+\end{itemize}
+
+The icosahedral mapping is particularly interesting, as it represents the highest level of symmetry available in regular deltahedra.
+
+\subsection{Potential Applications}
+The visualization framework and the mathematical structures it explores have potential applications in:
+
+\begin{itemize}
+    \item Educational tools for teaching fractal geometry and symmetry
+    \item Generative art and computational aesthetics
+    \item Design inspiration for architecture and product design
+    \item Visualization of mathematical concepts related to group theory and topology
+\end{itemize}
+
+\section{Conclusion}
+This paper has introduced the Sierpinski circlet as a novel geometric structure combining circular symmetry with fractal recursion. We have presented a comprehensive visualization framework for exploring these patterns in both 2D and 3D contexts, with customizable parameters and interactive controls.
+
+The mathematical analysis provides a formal foundation for understanding these structures, while the implementation details offer practical insights for creating similar visualizations. The results demonstrate the rich visual complexity that emerges from relatively simple recursive rules, highlighting the beauty of mathematical patterns.
+
+\subsection{Future Work}
+Several directions for future exploration include:
+
+\begin{itemize}
+    \item Extension to higher-dimensional spaces (4D and beyond)
+    \item Exploration of alternative recursion rules and non-uniform scaling factors
+    \item Investigation of dynamic systems where pattern parameters evolve over time
+    \item Application to physical systems such as acoustic resonance or electromagnetic field visualization
+    \item Integration with virtual reality environments for immersive exploration
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{sierpinski} Sierpiński, W. (1915). "Sur une courbe dont tout point est un point de ramification". Comptes Rendus de l'Academie des Sciences, 160, 302–305.
+
+\bibitem{mandelbrot} Mandelbrot, B. B. (1982). "The Fractal Geometry of Nature". W. H. Freeman and Company.
+
+\bibitem{threejs} Cabello, R. et al. (2010-2025). "Three.js". \url{https://threejs.org/}.
+
+\bibitem{ccapture} Bello, J. (2016). "CCapture.js". \url{https://github.com/spite/ccapture.js/}.
+
+\bibitem{flower} Melchizedek, D. (1999). "The Ancient Secret of the Flower of Life". Light Technology Publishing.
+
+\bibitem{fractal} Falconer, K. (2003). "Fractal Geometry: Mathematical Foundations and Applications". John Wiley & Sons.
+
+\bibitem{symmetry} Armstrong, M. A. (1988). "Groups and Symmetry". Springer-Verlag.
+
+\bibitem{canvas} World Wide Web Consortium (W3C). (2014). "HTML Canvas 2D Context". \url{https://www.w3.org/TR/2dcontext/}.
+
+\bibitem{webgl} Khronos Group. (2011). "WebGL Specification". \url{https://www.khronos.org/webgl/}.
+\end{thebibliography}
+
+\end{document}
